@@ -76,8 +76,9 @@ TVM_REGISTER_GLOBAL("relay.analysis.check_constant").set_body_typed(ConstantChec
 // or make a more powerful partial evaluator.
 class ConstantFolder : public MixedModeMutator {
  public:
-  explicit ConstantFolder(IRModule module)
+  explicit ConstantFolder(IRModule module, bool fold_qnn)
       : module_(module),
+        fold_qnn_(fold_qnn),
         device_copy_op_(Op::Get("device_copy")),
         shape_of_op_(Op::Get("shape_of")),
         vm_shape_of_op_(Op::Get("vm.shape_of")),
@@ -170,7 +171,17 @@ class ConstantFolder : public MixedModeMutator {
     static auto fnoncomputational = Op::GetAttrMap<TNonComputational>("TNonComputational");
     if (const auto* call_node = call->op.as<OpNode>()) {
       Op op = GetRef<Op>(call_node);
-      if ((fnoncomputational.count(op) && fnoncomputational[op]) || (call->op == device_copy_op_)) {
+
+      static auto qnn_canonicalize = Op::GetAttrMap<FTVMLegalize>("FTVMQnnCanonicalize");
+      bool is_no_qnn_canonicalized = !qnn_canonicalize.count(op);
+      bool is_no_computational = fnoncomputational.count(op) && fnoncomputational[op];
+      if (is_no_computational && (is_no_qnn_canonicalized || !fold_qnn_)) {
+        return GetRef<Call>(call);
+      }
+      if (call->op == device_copy_op_ || call->op == shape_of_op_ || call->op == vm_shape_of_op_ ||
+          call->op == ndarray_size_op_) {
+
+      // if ((fnoncomputational.count(op) && fnoncomputational[op]) || (call->op == device_copy_op_)) {
         return GetRef<Call>(call);
       }
     }
@@ -348,20 +359,22 @@ class ConstantFolder : public MixedModeMutator {
 
     return Optional<tvm::Array<IndexExpr>>(ishape);
   }
+
+  bool fold_qnn_;
 };
 
-Expr FoldConstant(const Expr& expr, const IRModule& mod) {
-  return ConstantFolder(mod).Mutate(expr);
+Expr FoldConstant(const Expr& expr, const IRModule& mod, bool fold_qnn) {
+  return ConstantFolder(mod, fold_qnn).Mutate(expr);
 }
 
 TVM_REGISTER_GLOBAL("relay._transform.FoldConstantExpr").set_body_typed(FoldConstant);
 
 namespace transform {
 
-Pass FoldConstant() {
+Pass FoldConstant(bool fold_qnn) {
   runtime::TypedPackedFunc<Function(Function, IRModule, PassContext)> pass_func =
       [=](Function f, IRModule m, PassContext pc) {
-        return Downcast<Function>(FoldConstant(f, m));
+        return Downcast<Function>(FoldConstant(f, m, fold_qnn));
       };
   return CreateFunctionPass(pass_func, 2, "FoldConstant", {});
 }

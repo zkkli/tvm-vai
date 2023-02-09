@@ -240,7 +240,7 @@ def LazyGradientInit():
     return _ffi_api.LazyGradientInit()
 
 
-def FoldConstantExpr(expr, mod):
+def FoldConstantExpr(expr, mod, fold_qnn=False):
     """Fold the constant expressions in a Relay program.
     Parameters
     ----------
@@ -254,10 +254,10 @@ def FoldConstantExpr(expr, mod):
     new_expr: Expr
         The expr after Constant Folding
     """
-    return _ffi_api.FoldConstantExpr(expr, mod)
+    return _ffi_api.FoldConstantExpr(expr, mod, fold_qnn)
 
 
-def FoldConstant():
+def FoldConstant(fold_qnn=False):
     """Fold the constant expressions in a Relay program.
 
     Returns
@@ -265,7 +265,7 @@ def FoldConstant():
     ret : tvm.transform.Pass
         The registered pass for constant folding.
     """
-    return _ffi_api.FoldConstant()
+    return _ffi_api.FoldConstant(fold_qnn)
 
 
 def FuseOps(fuse_opt_level=-1):

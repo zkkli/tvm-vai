@@ -95,7 +95,7 @@ TVM_DLL Pass LazyGradientInit();
  *
  * \return The pass.
  */
-TVM_DLL Pass FoldConstant();
+TVM_DLL Pass FoldConstant(bool fold_qnn = false);
 
 /*!
  * \brief Split function with huge number of arguments to smaller pieces.
