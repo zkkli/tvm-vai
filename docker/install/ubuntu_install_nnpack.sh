@@ -22,8 +22,8 @@ set -o pipefail
 
 apt-get update && apt-get install -y --no-install-recommends git cmake python-setuptools
 
-git clone https://github.com/Maratyszcza/NNPACK NNPACK
-git clone https://github.com/Maratyszcza/pthreadpool  NNPACK/pthreadpool
+git clone https://hub.nuaa.cf/Maratyszcza/NNPACK NNPACK
+git clone https://hub.nuaa.cf/Maratyszcza/pthreadpool  NNPACK/pthreadpool
 
 # Use specific versioning tag.
 (cd NNPACK && git checkout 1e005b0c2)
